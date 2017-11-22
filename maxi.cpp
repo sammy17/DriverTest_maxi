@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
 
 
     /***************************** Begin looping here *********************/
-    //auto begin = std::chrono::high_resolution_clock::now();
+    auto begin = std::chrono::high_resolution_clock::now();
     bool isFirst = true;
     for (int it=0;it<1;it++){
         // Queue the buffer
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
             ybuffer[j] = buffer[2*j];
         }
         printf("t2\n");
-        auto begin = std::chrono::high_resolution_clock::now();
+        auto begin2 = std::chrono::high_resolution_clock::now();
         memcpy(src,buffer,sizeof(uint32_t)*N/2);
         printf("t3\n");
         print_config();
@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
         while(!XBacksub_IsDone(&backsub));
         printf("backsub finished\n");
         auto end2 = std::chrono::high_resolution_clock::now();
-        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin).count());
+        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
         for (int i=0;i<100;i++){
         printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
         }
