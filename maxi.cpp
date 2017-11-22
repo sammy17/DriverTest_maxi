@@ -266,7 +266,8 @@ int main(int argc, char *argv[]) {
 
         while(!XBacksub_IsDone(&backsub));
         printf("backsub finished\n");
-
+        auto end2 = std::chrono::high_resolution_clock::now();
+        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end2-begin).count());
         for (int i=0;i<100;i++){
         printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
         }
@@ -354,9 +355,9 @@ int main(int argc, char *argv[]) {
         while(!XFeature_IsDone(&feature));
         printf("feature finished\nPrinting first histogram :\n");
 
-        // for (int h=0;h<512;h++){
-        //     printf("%d, ",m_axi_feature[h]);
-        // }
+        for (int h=0;h<512;h++){
+            printf("%d, ",m_axi_feature[h]);
+        }
         printf("\n");
         //client.sendBinMask(dst);
 
