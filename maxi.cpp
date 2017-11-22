@@ -272,7 +272,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Contour detection using opencv
-        printf("test1\n");
+;
         Mat mask = Mat(240, 320, CV_8UC1, dst); 
 
         std::vector<cv::Rect> detections,found;
@@ -297,7 +297,7 @@ int main(int argc, char *argv[]) {
             {
                 cv::convexHull(contours[i], convexHulls[i]);
             }
-            printf("test10\n");
+
             // convex hulls
             for (auto &convexHull : convexHulls) {
                 Blob possibleBlob(convexHull);
@@ -314,7 +314,7 @@ int main(int argc, char *argv[]) {
                     found.push_back(possibleBlob.currentBoundingRect);
                 }
             }
-            printf("test11\n");
+
             size_t i, j;
         
             for (i=0; i<found.size(); i++)
@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
                 }
         
             }
-            printf("test12\n");
+
             int len = detections.size();
             if (len>10){
                 len = 10;
@@ -347,9 +347,8 @@ int main(int argc, char *argv[]) {
                 m_axi_bound[k*4+3] = detections.at(k).y + detections.at(k).height;
                 printf("testloop %d \n",k);
             }
-        printf("test2\n");
+
         feature_config();
-        printf("test3\n");
         XFeature_Start(&feature);
         
         while(!XFeature_IsDone(&feature));
