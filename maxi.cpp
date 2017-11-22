@@ -334,11 +334,17 @@ int main(int argc, char *argv[]) {
         
             }
             printf("test12\n");
-            for (int k=0;k<10;k++){
-                m_axi_bound[k*4+0] = 64;//detections.at(k).x;
-                m_axi_bound[k*4+1] = 64;//detections.at(k).y;
-                m_axi_bound[k*4+2] = 128;//detections.at(k).x + detections.at(k).width;
-                m_axi_bound[k*4+3] = 128;//detections.at(k).y + detections.at(k).height;
+            int len = detections.size();
+            if (len>10){
+                len = 10;
+
+            }
+            printf("Detection Length: %d",len);
+            for (int k=0;k<len;k++){
+                m_axi_bound[k*4+0] = detections.at(k).x;
+                m_axi_bound[k*4+1] = detections.at(k).y;
+                m_axi_bound[k*4+2] = detections.at(k).x + detections.at(k).width;
+                m_axi_bound[k*4+3] = detections.at(k).y + detections.at(k).height;
                 printf("testloop %d \n",k);
             }
         printf("test2\n");
