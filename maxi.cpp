@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
         while(!XBacksub_IsDone(&backsub));
         printf("backsub finished\n");
         auto end2 = std::chrono::high_resolution_clock::now();
-        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end2-begin).count());
+        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin).count());
         for (int i=0;i<100;i++){
         printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
         }
