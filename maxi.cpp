@@ -241,14 +241,14 @@ int main(int argc, char *argv[]) {
         int outFileMemBlockSize = bufferinfo.bytesused;
         int remainingBufferSize = bufferinfo.bytesused;
 
-
+        auto begin2 = std::chrono::high_resolution_clock::now();
         printf("t1\n");
         for(int j=0;j<N;j++)
         {
             ybuffer[j] = buffer[2*j];
         }
         printf("t2\n");
-        auto begin2 = std::chrono::high_resolution_clock::now();
+        
         memcpy(src,buffer,sizeof(uint32_t)*N/2);
         printf("t3\n");
         print_config();
