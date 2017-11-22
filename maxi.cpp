@@ -354,9 +354,9 @@ int main(int argc, char *argv[]) {
         while(!XFeature_IsDone(&feature));
         printf("feature finished\nPrinting first histogram :\n");
 
-        for (int h=0;h<512;h++){
-            printf("%d, ",m_axi_feature[h]);
-        }
+        // for (int h=0;h<512;h++){
+        //     printf("%d, ",m_axi_feature[h]);
+        // }
         printf("\n");
         //client.sendBinMask(dst);
 
