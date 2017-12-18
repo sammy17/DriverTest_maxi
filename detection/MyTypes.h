@@ -5,14 +5,14 @@
 #ifndef NODE_MYTYPES_H
 #define NODE_MYTYPES_H
 
-#include <iostream>
-#include<string>
+// #include <iostream>
+// #include<string>
 // #include<opencv2/opencv.hpp>
 // #include <boost/array.hpp>
 // #include <boost/asio.hpp>
 
-using namespace std;
-using namespace cv;
+// using namespace std;
+// using namespace cv;
 // using boost::asio::ip::tcp;
 
 typedef unsigned char uchar;
