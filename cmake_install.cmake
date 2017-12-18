@@ -1,4 +1,4 @@
-# Install script for directory: /home/debian/DriverTest_maxi
+# Install script for directory: /home/zynq-fyp/Desktop/maxi/DriverTest_maxi
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/debian/DriverTest_maxi/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/zynq-fyp/Desktop/maxi/DriverTest_maxi/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

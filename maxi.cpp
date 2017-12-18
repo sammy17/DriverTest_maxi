@@ -10,8 +10,9 @@
 #include <fstream>
 #include <iostream>
 
-#include "detection/MyTypes.h"
-#include "detection/NodeClient.h"
+// #include "detection/MyTypes.h"
+#include "detection/ClientUDP.h"
+#include "detection/Frame.h"
 #include "detection/BGSDetector.h"
 
 //V4L2 Includes
@@ -29,7 +30,8 @@
 #include <sys/mman.h>
 #include <string.h>
 #include <string>
-//#include <termios.h>
+// #include <termios.h>
+#include<csignal>
 //#include<opencv2/opencv.hpp>
 
 
@@ -58,7 +60,16 @@ XBacksub backsub;
 XFeature feature;
 
 int fdIP;
-uint8_t * ybuffer = new uint8_t[N];
+int fd; // A file descriptor to the video device
+// uint8_t * ybuffer = new uint8_t[N];
+
+uint32_t * src; 
+uint8_t * dst; 
+
+
+uint16_t * m_axi_bound;
+uint16_t * m_axi_feature;
+
 
 
 int feature_init(XFeature * ptr){
@@ -111,11 +122,42 @@ void print_config() {
 }
 
 
+void signalHandler( int signum ) {
+    cout << "Interrupt signal (" << signum << ") received.\n";
+
+    // cleanup and close up stuff here
+    // terminate program
+
+    if(ioctl(fd, VIDIOC_STREAMOFF, &type) < 0)
+    {
+        perror("Could not end streaming, VIDIOC_STREAMOFF");
+    }
+
+    close(fd);
+
+    //Release IP Core
+    backsub_rel(&backsub);
+    feature_rel(&feature);
+
+    munmap((void*)src, DDR_RANGE);
+    munmap((void*)dst, DDR_RANGE);
+    munmap((void*)m_axi_bound, 80);
+    munmap((void*)m_axi_feature, 5120*2);
+
+    close(fdIP);
+
+    exit(signum);
+}
+
+
 int main(int argc, char *argv[]) {
 
+    signal(SIGINT, signalHandler);
+
     // Initialization communication link
-    // NodeClient client("10.8.145.198",8080);
-    // client.connect();
+    ClientUDP client(10.10.23.237,8080);
+    uint16_t frameNo=0;
+    const uint8_t cameraID = 0;
 
     // Initializing IP Core Starts here .........................
     fdIP = open ("/dev/mem", O_RDWR);
@@ -125,12 +167,12 @@ int main(int argc, char *argv[]) {
     }
 
 
-    uint32_t * src = (uint32_t*)mmap(NULL, DDR_RANGE,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, TX_BASE_ADDR); 
-    uint8_t * dst = (uint8_t*)mmap(NULL, DDR_RANGE,PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, RX_BASE_ADDR); 
+    src = (uint32_t*)mmap(NULL, DDR_RANGE,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, TX_BASE_ADDR); 
+    dst = (uint8_t*)mmap(NULL, DDR_RANGE,PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, RX_BASE_ADDR); 
 
 
-    uint16_t * m_axi_bound = (uint16_t*)mmap(NULL, 80,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, M_AXI_BOUNDING);
-    uint16_t * m_axi_feature = (uint16_t*)mmap(NULL, 5120*2,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, M_AXI_FEATUREH);
+    m_axi_bound = (uint16_t*)mmap(NULL, 80,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, M_AXI_BOUNDING);
+    m_axi_feature = (uint16_t*)mmap(NULL, 5120*2,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, M_AXI_FEATUREH);
 
 
     if(backsub_init(&backsub)==0) {
@@ -145,7 +187,6 @@ int main(int argc, char *argv[]) {
     
     /******************Initializing V4L2 Driver Starts Here**********************/
     // 1.  Open the device
-    int fd; // A file descriptor to the video device
     fd = open("/dev/video0",O_RDWR);
     if(fd < 0){
         perror("Failed to open device, OPEN");
@@ -223,7 +264,7 @@ int main(int argc, char *argv[]) {
     /***************************** Begin looping here *********************/
     auto begin = std::chrono::high_resolution_clock::now();
     bool isFirst = true;
-    for (int it=0;it<1;it++){
+    for (int it=0;it<1000;it++){
         // Queue the buffer
        // auto begin = std::chrono::high_resolution_clock::now();
         if(ioctl(fd, VIDIOC_QBUF, &bufferinfo) < 0){
@@ -242,15 +283,15 @@ int main(int argc, char *argv[]) {
         int remainingBufferSize = bufferinfo.bytesused;
 
         auto begin2 = std::chrono::high_resolution_clock::now();
-        printf("t1\n");
-        for(int j=0;j<N;j++)
-        {
-            ybuffer[j] = buffer[2*j];
-        }
-        printf("t2\n");
+        // printf("t1\n");
+        // for(int j=0;j<N;j++)
+        // {
+        //     ybuffer[j] = buffer[2*j];
+        // }
+        // printf("t2\n");
         
         memcpy(src,buffer,sizeof(uint32_t)*N/2);
-        printf("t3\n");
+        // printf("t3\n");
         print_config();
         if (isFirst){
             backsub_config(true);
@@ -259,7 +300,7 @@ int main(int argc, char *argv[]) {
         else{
             backsub_config(false);
         }
-        printf("t4\n");
+        // printf("t4\n");
 
 
         XBacksub_Start(&backsub);
@@ -268,9 +309,9 @@ int main(int argc, char *argv[]) {
         printf("backsub finished\n");
         auto end2 = std::chrono::high_resolution_clock::now();
         printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
-        for (int i=0;i<100;i++){
-        printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
-        }
+        // for (int i=0;i<100;i++){
+        // printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
+        // }
 
         // Contour detection using opencv
 ;
@@ -355,15 +396,39 @@ int main(int argc, char *argv[]) {
         while(!XFeature_IsDone(&feature));
         printf("feature finished\nPrinting first histogram :\n");
 
-        for (int h=0;h<512;h++){
-            printf("%d, ",m_axi_feature[h]);
-        }
-        printf("\n");
+        // for (int h=0;h<512;h++){
+        //     printf("%d, ",m_axi_feature[h]);
+        // }
+        // printf("\n");
         //client.sendBinMask(dst);
+
+        Frame frame;
+        frame.frameNo = frameNo;
+        frame.cameraID = cameraID;
+        for(int q=0;q<detections.size();q++)
+        {
+            BoundingBox bbox;
+            bbox.x = detections[q].x;
+            bbox.y = detections[q].y;
+            bbox.width = detections[q].width;
+            bbox.height = detections[q].height;
+            frame.detections.push_back(bbox);
+
+            vector<uint16_t> histogram(512);
+            // for(int r=0;r<512;r++)
+            // {
+            //     histogram[r] = (uint16_t)detector.histograms[q].at<short>(r);
+            // }
+            std::copy ( m_axi_feature+512*q, m_axi_feature+512*(q+1), histogram.begin() );
+            frame.histograms.push_back(histogram);
+        }
+        frameNo++;
+
+        client.send(frame);
 
         // outFile.close();
         //auto end = std::chrono::high_resolution_clock::now();
-        //printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count());
+        // printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count());
 
         // char c=getch();
         // if (c=='q')
@@ -373,7 +438,7 @@ int main(int argc, char *argv[]) {
 
     auto end = std::chrono::high_resolution_clock::now();
     /***************************** End looping here *********************/
-//printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end-begin).count());
+    // printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end-begin).count()/it);
     // end streaming
     if(ioctl(fd, VIDIOC_STREAMOFF, &type) < 0){
         perror("Could not end streaming, VIDIOC_STREAMOFF");
@@ -390,10 +455,12 @@ int main(int argc, char *argv[]) {
 
     munmap((void*)src, DDR_RANGE);
     munmap((void*)dst, DDR_RANGE);
+    munmap((void*)m_axi_bound, 80);
+    munmap((void*)m_axi_feature, 5120*2);
 
     close(fdIP);
      
-    printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count());
+    printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()/1000);
 
     printf("Device unmapped\n");
 
