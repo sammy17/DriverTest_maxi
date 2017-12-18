@@ -10,7 +10,7 @@
 #include <fstream>
 #include <iostream>
 
-// #include "detection/MyTypes.h"
+#include "detection/MyTypes.h"
 #include "detection/ClientUDP.h"
 #include "detection/Frame.h"
 #include "detection/BGSDetector.h"
@@ -61,6 +61,7 @@ XFeature feature;
 
 int fdIP;
 int fd; // A file descriptor to the video device
+int type;
 // uint8_t * ybuffer = new uint8_t[N];
 
 uint32_t * src; 
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, signalHandler);
 
     // Initialization communication link
-    ClientUDP client(10.10.23.237,8080);
+    ClientUDP client("10.10.23.237",8080);
     uint16_t frameNo=0;
     const uint8_t cameraID = 0;
 
@@ -253,7 +254,7 @@ int main(int argc, char *argv[]) {
     bufferinfo.index = 0;
 
     // Activate streaming
-    int type = bufferinfo.type;
+    type = bufferinfo.type;
     if(ioctl(fd, VIDIOC_STREAMON, &type) < 0){
         perror("Could not start streaming, VIDIOC_STREAMON");
         return 1;
