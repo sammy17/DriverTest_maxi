@@ -10,7 +10,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "detection/MyTypes.h"
+// #include "detection/MyTypes.h"
 #include "detection/ClientUDP.h"
 #include "detection/Frame.h"
 #include "detection/BGSDetector.h"
@@ -48,6 +48,8 @@
 
 #define M_AXI_BOUNDING 0x21000000
 #define M_AXI_FEATUREH 0x29000000
+
+#define 
 
 using namespace cv;
 using namespace std;
@@ -291,7 +293,7 @@ int main(int argc, char *argv[]) {
         // }
         // printf("t2\n");
         
-        memcpy(src,buffer,sizeof(uint32_t)*N/2);
+        memcpy(src,buffer,sizeof(uint32_t)*76800/2);
         // printf("t3\n");
         print_config();
         if (isFirst){
