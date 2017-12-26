@@ -4,8 +4,10 @@
 
 #include "ClientUDP.h"
 
-ClientUDP::ClientUDP(string host,
+ClientUDP::ClientUDP(boost::asio::io_service & io_service,
+                     string host,
                      unsigned short server_port):
+io_service(io_service),
 socket(io_service)
 {
     udp::resolver resolver(io_service);
