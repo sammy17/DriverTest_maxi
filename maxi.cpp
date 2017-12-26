@@ -403,9 +403,9 @@ int main(int argc, char *argv[]) {
             int len = detections.size();
             if (len>10){
                 len = 10;
-
             }
             //printf("Detection Length: %d",len);
+            memset(m_axi_bound,0,80); // initialize bounds to 0
             for (int k=0;k<len;k++){
                 m_axi_bound[k*4+0] = detections.at(k).x;
                 m_axi_bound[k*4+1] = detections.at(k).y;
@@ -430,7 +430,7 @@ int main(int argc, char *argv[]) {
         Frame frame;
         frame.frameNo = frameNo;
         frame.cameraID = cameraID;
-        for(int q=0;q<detections.size();q++)
+        for(int q=0;q<len;q++)
         {
             BoundingBox bbox;
             bbox.x = detections[q].x;
