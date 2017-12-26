@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, signalHandler);
 
     // Initialization communication link
-    ClientUDP client("10.0.0.200",8080);
+    ClientUDP client("10.10.23.237",8080);
     uint16_t frameNo=0;
     const uint8_t cameraID = 0;
 
