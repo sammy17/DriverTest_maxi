@@ -27,7 +27,8 @@ using boost::asio::ip::udp;
 class ClientUDP
 {
 public:
-    ClientUDP(string host,
+    ClientUDP(boost::asio::io_service & io_service,
+              string host,
               unsigned short server_port);
     void send(Frame frame);
     ~ClientUDP();

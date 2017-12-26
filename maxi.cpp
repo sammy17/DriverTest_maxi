@@ -157,7 +157,8 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, signalHandler);
 
     // Initialization communication link
-    ClientUDP client("10.10.23.237",8080);
+    boost::asio::io_service & io_service;
+    ClientUDP client(io_service,"10.10.23.237",8080);
     uint16_t frameNo=0;
     const uint8_t cameraID = 0;
 
