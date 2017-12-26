@@ -48,8 +48,7 @@
 
 #define M_AXI_BOUNDING 0x21000000
 #define M_AXI_FEATUREH 0x29000000
-
-#define 
+ 
 
 using namespace cv;
 using namespace std;
@@ -109,11 +108,11 @@ void backsub_rel(XBacksub * backsub_ptr){
 }
 
 void backsub_config(bool ini) {
-    printf("config\n");
+    //printf("config\n");
     XBacksub_Set_frame_in(&backsub,(u32)TX_BASE_ADDR);
-    printf("config1\n");
+    //printf("config1\n");
     XBacksub_Set_frame_out(&backsub,(u32)RX_BASE_ADDR);
-    printf("config2\n");
+    //printf("config2\n");
     XBacksub_Set_init(&backsub, ini);
 }
 
@@ -158,7 +157,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, signalHandler);
 
     // Initialization communication link
-    // ClientUDP client("10.10.23.237",8080);
+    ClientUDP client("10.0.0.200",8080);
     uint16_t frameNo=0;
     const uint8_t cameraID = 0;
 
@@ -217,6 +216,28 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    //v4l2_frmivalenum frame_interval;
+    //frame_interval.index=0;
+    //frame_interval.pixel_format = V4L2_PIX_FMT_YUYV;
+    //frame_interval.width = 320;
+    //frame_interval.height = 240;
+    //frame_interval.type = V4L2_FRMIVAL_TYPE_DISCRETE;
+    //frame_interval.discrete.denominator = 30;
+    //frame_interval.discrete.numerator = 1;
+    //if (ioctl(fd,VIDIOC_ENUM_FRAMEINTERVALS,&frame_interval)<0){
+    //	perror("Could not set frame interval, VIDIOC_ENUM_FRAMEINTERVALS");
+    //    return 1;
+    //}
+
+    v4l2_streamparm streamParm;
+    memset(&streamParm,0,sizeof(streamParm));
+    streamParm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE; //Must be set to V4L2_BUF_TYPE_VIDEO_CAPTURE.
+    streamParm.parm.capture.timeperframe.numerator = 1;
+    streamParm.parm.capture.timeperframe.denominator = 30;
+    if(ioctl(fd,VIDIOC_S_PARM,&streamParm) == -1)
+        return false;
+
+
     // 4. Request Buffers from the device
     v4l2_requestbuffers requestBuffer = {0};
     requestBuffer.count = 1; // one request buffer
@@ -265,11 +286,11 @@ int main(int argc, char *argv[]) {
 
 
     /***************************** Begin looping here *********************/
-    auto begin = std::chrono::high_resolution_clock::now();
+//    auto begin = std::chrono::high_resolution_clock::now();
     bool isFirst = true;
-    for (int it=0;it<1000;it++){
+    for (;;){
         // Queue the buffer
-       // auto begin = std::chrono::high_resolution_clock::now();
+        auto begin = std::chrono::high_resolution_clock::now();
         if(ioctl(fd, VIDIOC_QBUF, &bufferinfo) < 0){
             perror("Could not queue buffer, VIDIOC_QBUF");
             return 1;
@@ -295,7 +316,7 @@ int main(int argc, char *argv[]) {
         
         memcpy(src,buffer,sizeof(uint32_t)*76800/2);
         // printf("t3\n");
-        print_config();
+        //print_config();
         if (isFirst){
             backsub_config(true);
             isFirst = false;
@@ -309,9 +330,9 @@ int main(int argc, char *argv[]) {
         XBacksub_Start(&backsub);
 
         while(!XBacksub_IsDone(&backsub));
-        printf("backsub finished\n");
+        //printf("backsub finished\n");
         auto end2 = std::chrono::high_resolution_clock::now();
-        printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
+        //printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
         // for (int i=0;i<100;i++){
         // printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
         // }
@@ -384,20 +405,21 @@ int main(int argc, char *argv[]) {
                 len = 10;
 
             }
-            printf("Detection Length: %d",len);
+            //printf("Detection Length: %d",len);
             for (int k=0;k<len;k++){
                 m_axi_bound[k*4+0] = detections.at(k).x;
                 m_axi_bound[k*4+1] = detections.at(k).y;
                 m_axi_bound[k*4+2] = detections.at(k).x + detections.at(k).width;
                 m_axi_bound[k*4+3] = detections.at(k).y + detections.at(k).height;
-                printf("testloop %d \n",k);
+                //printf("testloop %d \n",k);
             }
-
+	auto end3 = std::chrono::high_resolution_clock::now();
         feature_config();
         XFeature_Start(&feature);
         
         while(!XFeature_IsDone(&feature));
-        printf("feature finished\nPrinting first histogram :\n");
+	auto end4 = std::chrono::high_resolution_clock::now();
+        //printf("feature finished\nPrinting first histogram :\n");
 
         // for (int h=0;h<512;h++){
         //     printf("%d, ",m_axi_feature[h]);
@@ -427,19 +449,24 @@ int main(int argc, char *argv[]) {
         }
         frameNo++;
 
-        // client.send(frame);
+        client.send(frame);
 
         // outFile.close();
-        //auto end = std::chrono::high_resolution_clock::now();
+        auto end = std::chrono::high_resolution_clock::now();
         // printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count());
 
         // char c=getch();
         // if (c=='q')
         //   break;
+	printf("Elapsed time backsub : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(begin2-begin).count());
+	printf("Elapsed time backsub : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
+	printf("Elapsed time opencv  : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end3-end2).count());
+	printf("Elapsed time feature : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end4-end3).count());
+	printf("Elapsed time send    : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-end4).count());
+	//printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chron$    
+}
 
-    }
-
-    auto end = std::chrono::high_resolution_clock::now();
+    //auto end = std::chrono::high_resolution_clock::now();
     /***************************** End looping here *********************/
     // printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end-begin).count()/it);
     // end streaming
@@ -463,7 +490,7 @@ int main(int argc, char *argv[]) {
 
     close(fdIP);
      
-    printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()/1000);
+    //printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()/1000);
 
     printf("Device unmapped\n");
 

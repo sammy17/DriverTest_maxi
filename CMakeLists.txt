@@ -23,4 +23,4 @@ file(GLOB SOURCE_FILES
 
 add_executable(node ${SOURCE_FILES})
 
-target_link_libraries( node ${OpenCV_LIBS} ${Boost_LIBRARIES} -lpthread )
+target_link_libraries( node ${OpenCV_LIBS} ${Boost_LIBRARIES} -lpthread -lboost_serialization)
