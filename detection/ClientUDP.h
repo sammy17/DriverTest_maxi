@@ -18,7 +18,7 @@
 #include <boost/serialization/vector.hpp>
 #include "Frame.h"
 
-#define BUFFER_SIZE 5120
+#define BUFFER_SIZE 32768
 
 using namespace std;
 using namespace cv;
@@ -35,9 +35,11 @@ public:
 
 private:
     boost::array<unsigned char,BUFFER_SIZE> tx_buffer;
-    boost::asio::io_service io_service;
+    boost::asio::io_service& io_service;
     udp::socket socket;
     udp::endpoint server_endpoint;
+    unsigned short port;
+    string host;
 };
 
 

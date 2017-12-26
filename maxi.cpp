@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
     signal(SIGINT, signalHandler);
 
     // Initialization communication link
-    boost::asio::io_service & io_service;
+    boost::asio::io_service io_service;
     ClientUDP client(io_service,"10.10.23.237",8080);
     uint16_t frameNo=0;
     const uint8_t cameraID = 0;
@@ -431,6 +431,8 @@ int main(int argc, char *argv[]) {
         Frame frame;
         frame.frameNo = frameNo;
         frame.cameraID = cameraID;
+        frame.detections.clear();
+        frame.histograms.clear();
         for(int q=0;q<len;q++)
         {
             BoundingBox bbox;
