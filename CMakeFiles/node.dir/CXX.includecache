@@ -66,6 +66,8 @@ iostream
 opencv2/opencv.hpp
 -
 
+/home/debian/DriverTest_maxi/detection/MyTypes.h
+
 /home/debian/DriverTest_maxi/drivers/xbacksub.h
 xil_types.h
 /home/debian/DriverTest_maxi/drivers/xil_types.h
@@ -157,36 +159,10 @@ iostream
 -
 detection/ClientUDP.h
 /home/debian/DriverTest_maxi/detection/ClientUDP.h
-detection/Frame.h
-/home/debian/DriverTest_maxi/detection/Frame.h
+detection/MyTypes.h
+/home/debian/DriverTest_maxi/detection/MyTypes.h
 detection/BGSDetector.h
 /home/debian/DriverTest_maxi/detection/BGSDetector.h
-stdio.h
--
-stdlib.h
--
-linux/ioctl.h
--
-linux/types.h
--
-linux/v4l2-common.h
--
-linux/v4l2-controls.h
--
-linux/videodev2.h
--
-fcntl.h
--
-unistd.h
--
-sys/ioctl.h
--
-sys/mman.h
--
-string.h
--
-string
--
 csignal
 -
 

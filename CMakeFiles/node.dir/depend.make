@@ -40,6 +40,7 @@ CMakeFiles/node.dir/maxi.cpp.o: detection/BGSDetector.h
 CMakeFiles/node.dir/maxi.cpp.o: detection/ClientUDP.h
 CMakeFiles/node.dir/maxi.cpp.o: detection/Detector.h
 CMakeFiles/node.dir/maxi.cpp.o: detection/Frame.h
+CMakeFiles/node.dir/maxi.cpp.o: detection/MyTypes.h
 CMakeFiles/node.dir/maxi.cpp.o: drivers/xbacksub.h
 CMakeFiles/node.dir/maxi.cpp.o: drivers/xbacksub_hw.h
 CMakeFiles/node.dir/maxi.cpp.o: drivers/xfeature.h

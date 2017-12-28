@@ -41,6 +41,7 @@ CMakeFiles/node.dir/maxi.cpp.o
  /home/debian/DriverTest_maxi/detection/ClientUDP.h
  /home/debian/DriverTest_maxi/detection/Detector.h
  /home/debian/DriverTest_maxi/detection/Frame.h
+ /home/debian/DriverTest_maxi/detection/MyTypes.h
  /home/debian/DriverTest_maxi/drivers/xbacksub.h
  /home/debian/DriverTest_maxi/drivers/xbacksub_hw.h
  /home/debian/DriverTest_maxi/drivers/xfeature.h

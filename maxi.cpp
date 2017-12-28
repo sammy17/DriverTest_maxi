@@ -8,7 +8,7 @@
 #include <iostream>
 
 // #include "detection/MyTypes.h"
-#include "detection/NodeClient.h"
+#include "detection/ClientUDP.h"
 #include "detection/MyTypes.h"
 #include "detection/BGSDetector.h"
 #include <csignal>
@@ -107,17 +107,13 @@ void signalHandler( int signum ) {
     // cleanup and close up stuff here
     // terminate program
 
-    if(ioctl(fd, VIDIOC_STREAMOFF, &type) < 0)
-    {
-        perror("Could not end streaming, VIDIOC_STREAMOFF");
-    }
-
     //Release IP Core
     backsub_rel(&backsub);
     feature_rel(&feature);
 
     munmap((void*)src, DDR_RANGE);
     munmap((void*)dst, DDR_RANGE);
+    munmap((void*)rgb_src, DDR_RANGE);
     munmap((void*)m_axi_bound, 80);
     munmap((void*)m_axi_feature, 5120*2);
 
@@ -332,6 +328,7 @@ int main(int argc, char *argv[]) {
 
     munmap((void*)src, DDR_RANGE);
     munmap((void*)dst, DDR_RANGE);
+    munmap((void*)rgb_src, DDR_RANGE);
     munmap((void*)m_axi_bound, 80);
     munmap((void*)m_axi_feature, 5120*2);
 
