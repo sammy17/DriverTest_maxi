@@ -1,6 +1,3 @@
-// #include "node/MyTypes.h"
-// #include "node/NodeClient.h"
-
 #include "drivers/xbacksub.h"
 #include "drivers/xfeature.h"
 
@@ -11,34 +8,13 @@
 #include <iostream>
 
 // #include "detection/MyTypes.h"
-#include "detection/ClientUDP.h"
-#include "detection/Frame.h"
+#include "detection/NodeClient.h"
+#include "detection/MyTypes.h"
 #include "detection/BGSDetector.h"
-
-//V4L2 Includes
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <linux/ioctl.h>
-#include <linux/types.h>
-#include <linux/v4l2-common.h>
-#include <linux/v4l2-controls.h>
-#include <linux/videodev2.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <string.h>
-#include <string>
-// #include <termios.h>
-#include<csignal>
-//#include<opencv2/opencv.hpp>
-
-
-
-/***************** Macros (Inline Functions) Definitions *********************/
+#include <csignal>
 
 #define TX_BASE_ADDR 0x01000000
+#define RGB_TX_BASE_ADDR 0x03000000
 #define DDR_RANGE 0x01000000
 #define RX_BASE_ADDR 0x02000000
 
@@ -48,7 +24,7 @@
 
 #define M_AXI_BOUNDING 0x21000000
 #define M_AXI_FEATUREH 0x29000000
- 
+
 
 using namespace cv;
 using namespace std;
@@ -65,7 +41,8 @@ int fd; // A file descriptor to the video device
 int type;
 // uint8_t * ybuffer = new uint8_t[N];
 
-uint32_t * src; 
+uint8_t * src; 
+uint8_t * rgb_src; 
 uint8_t * dst; 
 
 
@@ -88,7 +65,7 @@ void feature_rel(XFeature * ptr){
 
 void feature_config() {
     printf("config\n");
-    XFeature_Set_frame_in(&feature,(u32)TX_BASE_ADDR);
+    XFeature_Set_frame_in(&feature,(u32)RGB_TX_BASE_ADDR);
     XFeature_Set_bounding(&feature,(u32)M_AXI_BOUNDING);
     XFeature_Set_featureh(&feature,(u32)M_AXI_FEATUREH);
 }
@@ -135,8 +112,6 @@ void signalHandler( int signum ) {
         perror("Could not end streaming, VIDIOC_STREAMOFF");
     }
 
-    close(fd);
-
     //Release IP Core
     backsub_rel(&backsub);
     feature_rel(&feature);
@@ -169,8 +144,15 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    VideoCapture cap(0);
+    cap.set(CV_CAP_PROP_FRAME_WIDTH,320);
+    cap.set(CV_CAP_PROP_FRAME_HEIGHT,240);
+    cap.set(CV_CAP_PROP_FPS,30);
+    cap.set(CV_CAP_PROP_CONVERT_RGB,true);
 
-    src = (uint32_t*)mmap(NULL, DDR_RANGE,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, TX_BASE_ADDR); 
+
+    src = (uint8_t*)mmap(NULL, DDR_RANGE,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, TX_BASE_ADDR); 
+    rgb_src = (uint8_t*)mmap(NULL, DDR_RANGE,PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, RGB_TX_BASE_ADDR); 
     dst = (uint8_t*)mmap(NULL, DDR_RANGE,PROT_EXEC|PROT_READ|PROT_WRITE, MAP_SHARED, fdIP, RX_BASE_ADDR); 
 
 
@@ -188,166 +170,49 @@ int main(int argc, char *argv[]) {
     // Initializing IP Core Ends here .........................
 
     
-    /******************Initializing V4L2 Driver Starts Here**********************/
-    // 1.  Open the device
-    fd = open("/dev/video0",O_RDWR);
-    if(fd < 0){
-        perror("Failed to open device, OPEN");
-        return 1;
-    }
-
-    // 2. Ask the device if it can capture frames
-    v4l2_capability capability;
-    if(ioctl(fd, VIDIOC_QUERYCAP, &capability) < 0){
-        // something went wrong... exit
-        perror("Failed to get device capabilities, VIDIOC_QUERYCAP");
-        return 1;
-    }
-
-    // 3. Set Image format
-    v4l2_format imageFormat;
-    imageFormat.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    imageFormat.fmt.pix.width = 320;
-    imageFormat.fmt.pix.height = 240;
-    imageFormat.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-    imageFormat.fmt.pix.field = V4L2_FIELD_NONE;
-    // tell the device you are using this format
-    if(ioctl(fd, VIDIOC_S_FMT, &imageFormat) < 0){
-        perror("Device could not set format, VIDIOC_S_FMT");
-        return 1;
-    }
-
-    //v4l2_frmivalenum frame_interval;
-    //frame_interval.index=0;
-    //frame_interval.pixel_format = V4L2_PIX_FMT_YUYV;
-    //frame_interval.width = 320;
-    //frame_interval.height = 240;
-    //frame_interval.type = V4L2_FRMIVAL_TYPE_DISCRETE;
-    //frame_interval.discrete.denominator = 30;
-    //frame_interval.discrete.numerator = 1;
-    //if (ioctl(fd,VIDIOC_ENUM_FRAMEINTERVALS,&frame_interval)<0){
-    //	perror("Could not set frame interval, VIDIOC_ENUM_FRAMEINTERVALS");
-    //    return 1;
-    //}
-
-    v4l2_streamparm streamParm;
-    memset(&streamParm,0,sizeof(streamParm));
-    streamParm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE; //Must be set to V4L2_BUF_TYPE_VIDEO_CAPTURE.
-    streamParm.parm.capture.timeperframe.numerator = 1;
-    streamParm.parm.capture.timeperframe.denominator = 30;
-    if(ioctl(fd,VIDIOC_S_PARM,&streamParm) == -1)
-        return false;
-
-
-    // 4. Request Buffers from the device
-    v4l2_requestbuffers requestBuffer = {0};
-    requestBuffer.count = 1; // one request buffer
-    requestBuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE; // request a buffer wich we an use for capturing frames
-    requestBuffer.memory = V4L2_MEMORY_MMAP;
-
-    if(ioctl(fd, VIDIOC_REQBUFS, &requestBuffer) < 0){
-        perror("Could not request buffer from device, VIDIOC_REQBUFS");
-        return 1;
-    }
-
-
-    // 5. Quety the buffer to get raw data ie. ask for the you requested buffer
-    // and allocate memory for it
-    v4l2_buffer queryBuffer = {0};
-    queryBuffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    queryBuffer.memory = V4L2_MEMORY_MMAP;
-    queryBuffer.index = 0;
-    if(ioctl(fd, VIDIOC_QUERYBUF, &queryBuffer) < 0){
-        perror("Device did not return the buffer information, VIDIOC_QUERYBUF");
-        return 1;
-    }
-    // use a pointer to point to the newly created buffer
-    // mmap() will map the memory address of the device to
-    // an address in memory
-    char* buffer = (char*)mmap(NULL, queryBuffer.length, PROT_READ | PROT_WRITE, MAP_SHARED,
-                        fd, queryBuffer.m.offset);
-    memset(buffer, 0, queryBuffer.length);
-
-
-    // 6. Get a frame
-    // Create a new buffer type so the device knows whichbuffer we are talking about
-    v4l2_buffer bufferinfo;
-    memset(&bufferinfo, 0, sizeof(bufferinfo));
-    bufferinfo.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    bufferinfo.memory = V4L2_MEMORY_MMAP;
-    bufferinfo.index = 0;
-
-    // Activate streaming
-    type = bufferinfo.type;
-    if(ioctl(fd, VIDIOC_STREAMON, &type) < 0){
-        perror("Could not start streaming, VIDIOC_STREAMON");
-        return 1;
-    }
-    /******************Initializing V4L2 Driver Ends Here**********************/
-
+ 
 
     /***************************** Begin looping here *********************/
 //    auto begin = std::chrono::high_resolution_clock::now();
     bool isFirst = true;
+    bool isSecond = false;
+    Mat img, grey;
+
+
     for (;;){
         // Queue the buffer
         auto begin = std::chrono::high_resolution_clock::now();
-        if(ioctl(fd, VIDIOC_QBUF, &bufferinfo) < 0){
-            perror("Could not queue buffer, VIDIOC_QBUF");
-            return 1;
-        }
 
-        // Dequeue the buffer
-        if(ioctl(fd, VIDIOC_DQBUF, &bufferinfo) < 0){
-            perror("Could not dequeue the buffer, VIDIOC_DQBUF");
-            return 1;
-        }
-
-
-        int outFileMemBlockSize = bufferinfo.bytesused;
-        int remainingBufferSize = bufferinfo.bytesused;
-
-        auto begin2 = std::chrono::high_resolution_clock::now();
-        // printf("t1\n");
-        // for(int j=0;j<N;j++)
-        // {
-        //     ybuffer[j] = buffer[2*j];
-        // }
-        // printf("t2\n");
-        
-        memcpy(src,buffer,sizeof(uint32_t)*76800/2);
-        // printf("t3\n");
-        //print_config();
         if (isFirst){
             backsub_config(true);
             isFirst = false;
+            isSecond = true;
         }
-        else{
+        if (isSecond){
             backsub_config(false);
+            isSecond = false;
         }
-        // printf("t4\n");
 
+        cap>>img;
+        cv::cvtColor(img, grey, CV_BGR2GRAY);
+        memcpy(rgb_src,img.data,76800*3);
+        memcpy(src,grey.data,76800);
+
+        auto begin2 = std::chrono::high_resolution_clock::now();
 
         XBacksub_Start(&backsub);
 
         while(!XBacksub_IsDone(&backsub));
-        //printf("backsub finished\n");
-        auto end2 = std::chrono::high_resolution_clock::now();
-        //printf("Elapsed time Backsub: %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end2-begin2).count());
-        // for (int i=0;i<100;i++){
-        // printf("src : %d , dst : %d \n",ybuffer[i],dst[i]);
-        // }
 
-        // Contour detection using opencv
-;
+        auto end2 = std::chrono::high_resolution_clock::now();
+
         Mat mask = Mat(240, 320, CV_8UC1, dst); 
 
         std::vector<cv::Rect> detections,found;
         
-        // cv::Mat structuringElement3x3 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
+
         cv::Mat structuringElement5x5 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
-        // cv::Mat structuringElement7x7 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(7, 7));
-        // cv::Mat structuringElement9x9 = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
+
         
             cv::dilate(mask, mask, structuringElement5x5);
             cv::dilate(mask, mask, structuringElement5x5);
@@ -420,13 +285,7 @@ int main(int argc, char *argv[]) {
         
         while(!XFeature_IsDone(&feature));
 	auto end4 = std::chrono::high_resolution_clock::now();
-        //printf("feature finished\nPrinting first histogram :\n");
 
-        // for (int h=0;h<512;h++){
-        //     printf("%d, ",m_axi_feature[h]);
-        // }
-        // printf("\n");
-        //client.sendBinMask(dst);
 
         Frame frame;
         frame.frameNo = frameNo;
@@ -443,10 +302,7 @@ int main(int argc, char *argv[]) {
             frame.detections.push_back(bbox);
 
             vector<uint16_t> histogram(512);
-            // for(int r=0;r<512;r++)
-            // {
-            //     histogram[r] = (uint16_t)detector.histograms[q].at<short>(r);
-            // }
+      
             std::copy ( m_axi_feature+512*q, m_axi_feature+512*(q+1), histogram.begin() );
             frame.histograms.push_back(histogram);
         }
@@ -469,18 +325,6 @@ int main(int argc, char *argv[]) {
 	//printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chron$    
 }
 
-    //auto end = std::chrono::high_resolution_clock::now();
-    /***************************** End looping here *********************/
-    // printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrd::chrono::microseconds>(end-begin).count()/it);
-    // end streaming
-    if(ioctl(fd, VIDIOC_STREAMOFF, &type) < 0){
-        perror("Could not end streaming, VIDIOC_STREAMOFF");
-        return 1;
-    }
-
-    
-
-    close(fd);
 
     //Release IP Core
     backsub_rel(&backsub);
@@ -493,8 +337,6 @@ int main(int argc, char *argv[]) {
 
     close(fdIP);
      
-    //printf("Elapsed time : %lld us\n",std::chrono::duration_cast<std::chrono::microseconds>(end-begin).count()/1000);
-
     printf("Device unmapped\n");
 
     return 0;
